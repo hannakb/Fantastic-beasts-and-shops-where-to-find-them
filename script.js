@@ -10,6 +10,8 @@ var Diagnostics = require('Diagnostics');
 var Animation = require('Animation');
 var FaceTracking = require('FaceTracking');
 var Scene = require('Scene');
+const Networking = require('Networking');
+
 
 var ft = Scene.root.child("Device").child("Camera").child("Focal Distance").child("facetracker0");
 var ft2 = Scene.root.child("Device").child("Camera").child("Focal Distance");
@@ -50,13 +52,13 @@ mouth['up'] = {};
 
 Object.defineProperty(d, "set", {
   configurable: false,
-  enumerable: false, 
+  enumerable: false,
   writable: true,
   value: function () {
 
   	this[arguments[0]][arguments[1]] = arguments[2];
   	for (var i = 0; i < input.length; i++) {
-  		var key = input[i];	
+  		var key = input[i];
   		if ((this[key]['x'] > mouth['left']['x']) && (this[key]['x'] < mouth['right']['x']) && (this[key]['y'] > mouth['low']['y']) && (this[key]['y'] < mouth['up']['y'])) {
   			count++;
   			Diagnostics.log(count);
@@ -156,14 +158,6 @@ var macAddress;
 
 const recommendationNode = Scene.root.find('recommendationField');
 
-const Networking = require('Networking');
-
-const url = 'https://junctionbeasts.tk/analytics/personal_popular';
-const request = {
-    method: 'GET',
-    body: JSON.stringify({clientMac: macAddress}),
-    headers: {'Content-type': 'application/json; charset=UTF-8'}
-}
 
 TouchGestures.onTap(text).subscribeWithSnapshot({"text": text.text}, function(event, snapshot) {
   NativeUI.enterTextEditMode(textNodeName);
@@ -171,26 +165,27 @@ TouchGestures.onTap(text).subscribeWithSnapshot({"text": text.text}, function(ev
     function(e) {
       macAddress = e.newValue;
       Diagnostics.log(macAddress);
-    }
-  );
-  Networking.fetch(url, request).then(function(result) {
-      Diagnostics.log("result");
-      if ((result.status >= 200) && (result.status < 300)) {
-          // If the request was successful, we'll chain the JSON forward
-          return result.json();
-      }
-      // If the request was not successful, we should throw an error
-      throw new Error("HTTP status code " + result.status);
-  }).then(function(json) {
-      // Here we can process the JSON obtained by the successful request
-      Diagnostics.log(json);
-      // recommendationNode.text = json.title;
-      macAddressField.hidden = true;
-      recommendationNode.hidden = false;
-  }).catch(function(error) {
-      Diagnostics.log(error);
-      // Here we process any errors that may happen with the request
-      recommendationNode.text = error.message;
-  });
-});
 
+			const url = 'https://junctionbeasts.tk/analytics/personal_popular?macAddress='+macAddress;
+			const request = {
+			    method: 'GET',
+			}
+
+		  Networking.fetch(url, request).then(function(result) {
+		      Diagnostics.log("result");
+		      if ((result.status >= 200) && (result.status < 300)) {
+		          return result.json();
+		      }
+		      throw new Error("HTTP status code " + result.status);
+		  }).then(function(json) {
+		      Diagnostics.log(json);
+		      macAddressField.hidden = true;
+		      recommendationNode.hidden = false;
+					recommendationNode.text = "("+json[0][0]+" , "+json[0][1]+")";
+		  }).catch(function(error) {
+		      Diagnostics.log(error);
+		      recommendationNode.text = error.message;
+		  });
+		}
+	);
+});
